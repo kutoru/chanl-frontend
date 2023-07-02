@@ -9,9 +9,11 @@
     >
       <div v-if="index+1 !== topRoutes.length" class="nav-bar-item" style="margin-bottom: 0;" role="link" @click="navigate">
         {{ route.title }}
+        <div class="tooltip">{{ route.desc }}</div>
       </div>
       <div v-else class="nav-bar-item" role="link" @click="navigate">
         {{ route.title }}
+        <div class="tooltip">{{ route.desc }}</div>
       </div>
     </RouterLink>
 
@@ -26,6 +28,7 @@
     >
       <div class="nav-bar-item" style="margin-top: 0;" role="link" @click="navigate">
         {{ route.title }}
+        <span class="tooltip">{{ route.desc }}</span>
       </div>
     </RouterLink>
   </div>
@@ -38,16 +41,19 @@ import { RouterLink } from 'vue-router';
 const topRoutes = [
   {
     title: "GLOB",
+    desc: "Global\nchannel",
     requireLogin: false,
     to: { name: "global" }
   },
   {
     title: "PRIV",
+    desc: "Private\nchannel",
     requireLogin: true,
     to: { name: "private" }
   },
   {
     title: "PERS",
+    desc: "Personal\nchannel",
     requireLogin: true,
     to: { name: "personal" }
   },
@@ -56,11 +62,13 @@ const topRoutes = [
 const bottomRoutes = [
   {
     title: "ABT",
+    desc: "About this\nwebsite",
     requireLogin: false,
     to: { name: "about" }
   },
   {
     title: "LOG OUT",
+    desc: "Log out of\nyour account",
     requireLogin: true,
     to: { name: "login" }
   },
@@ -113,6 +121,8 @@ onMounted(() => {
   font-weight: bold;
   flex: 0 0 auto;
 
+  position: relative;
+
   /* centering text */
   display: flex;
   text-align: center;
@@ -122,5 +132,38 @@ onMounted(() => {
 .nav-bar-item:hover {
   box-shadow: 0px 0px 5px 1px rgba(50, 200, 200, 0.5);
   text-shadow: 0px 0px 10px rgb(60, 255, 255);
+}
+.nav-bar-item .tooltip {
+  width: fit-content;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  text-align: center;
+  border-radius: 5px;
+  text-shadow: none;
+  padding: 5px;
+  white-space: pre;
+
+  transition: all 100ms ease-out;
+  scale: 0;
+
+  position: absolute;
+  z-index: 1;
+  right: 125%;
+}
+.nav-bar-item .tooltip::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  margin-top: -7px;
+  border-width: 7px;
+  border-style: solid;
+  border-color: transparent transparent transparent rgba(0, 0, 0, 0.5);
+}
+.nav-bar-item:hover .tooltip {
+  scale: 1;
+}
+.nav-bar-item .tooltip:hover {
+  scale: 0;
 }
 </style>
