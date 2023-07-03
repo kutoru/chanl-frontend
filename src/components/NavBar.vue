@@ -28,15 +28,31 @@
     >
       <div class="nav-bar-item" style="margin-top: 0;" role="link" @click="navigate">
         {{ route.title }}
-        <span class="tooltip">{{ route.desc }}</span>
+        <div class="tooltip">{{ route.desc }}</div>
       </div>
     </RouterLink>
+
+    <div v-if="loggedIn" class="nav-bar-item" style="margin-top: 0;" role="link" @click="logout">
+      LOG OUT
+      <div class="tooltip">Log out of<br>your account</div>
+    </div>
+    <!-- TODO: if the user is not logged in, make this into a router link and send the user to the login page -->
+    <div v-else class="nav-bar-item" style="margin-top: 0;" role="link" @click="login('Kut', '1234')">
+      LOG IN
+      <div class="tooltip">Log into<br>your account</div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useUserStore } from '@/stores/user';
+import { storeToRefs } from 'pinia';
 import { onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
+
+const userStore = useUserStore()
+const { currentUser, loggedIn } = storeToRefs(userStore)
+const { login, logout } = userStore
 
 const topRoutes = [
   {
@@ -66,12 +82,12 @@ const bottomRoutes = [
     requireLogin: false,
     to: { name: "about" }
   },
-  {
-    title: "LOG OUT",
-    desc: "Log out of\nyour account",
-    requireLogin: true,
-    to: { name: "login" }
-  },
+  // {
+  //   title: "LOG IN",
+  //   desc: "Log into\nyour account",
+  //   requireLogin: false,
+  //   to: { name: "login" }
+  // },
 ]
 
 // 100vh in css is incorrect for some mobile browsers, this function gets actual 100vh
@@ -99,10 +115,14 @@ onMounted(() => {
   width: 75px;
   height: 100vh;
   position: fixed;
+
   box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.5);
   transition: box-shadow 200ms ease-out, text-shadow 200ms ease-out;
+
   display: flex;
   flex-flow: column;
+
+  transition: height 100ms ease-out;
 }
 .nav-bar:hover {
   box-shadow: 0px 0px 5px 1px rgba(50, 200, 200, 0.5);
