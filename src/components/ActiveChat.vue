@@ -1,44 +1,23 @@
 <template>
   <div v-if="everythingLoaded && currentChannel && channel" class="channel-container">
-    <!-- Maybe change this to a separate ChannelInfo component -->
-    <div class="channel-info">
-      <h2>Channel "{{ channel.name }}"</h2>
-      <h3 v-if="isConnected">Status: Online</h3>
-      <h3 v-else>Status: Offline</h3>
-    </div>
-    <!-- TODO: Change this to a separate ChannelMessage component -->
-    <div class="message-container">
-      <div v-for="message, index in receivedMessages" :key="index" class="message">
-        <div>{{ message.id }}</div>
-        <div>{{ message.userId }}</div>
-        <div>{{ message.channelId }}</div>
-        <div>{{ message.text }}</div>
-        <div>{{ message.sentAt }}</div>
-      </div>
-    </div>
-    <!-- TODO: Change this to a separate MessageInput component -->
-      <div v-if="loggedIn" class="input">
-        <input
-          type="text"
-          :placeholder="'Enter a message'"
-          v-model="messageText"
-        >
-        <button @click.prevent="sendMessage">Send</button>
-      </div>
-      <div v-else class="input">Log in to send messages</div>
+    <ChannelInfoContainer :is-connected="isConnected" />
+    <ChannelMessageContainer :messages="receivedMessages" />
+    <ChannelInputContainer :is-connected="isConnected" @submit-message-text="(msg) => sendMessage(msg)" />
   </div>
 
-  <h2 v-else-if="loadFailed">Either could not connect or could not load the necessary information</h2>
-  <h2 v-else>Loading the channel...</h2>
+  <h2 style="margin: 20px;" v-else-if="loadFailed">Either could not connect or could not load the necessary information</h2>
+  <h2 style="margin: 20px;" v-else>Loading the channel...</h2>
 </template>
 
 <script setup lang="ts">
-import type { Channel } from "@/types/Channel";
-import type { CurrentChannel } from "@/types/CurrentChannel";
-import type { Message } from "@/types/Message";
 import { ref } from "vue";
-import { useUserStore } from '@/stores/user';
-import { storeToRefs } from 'pinia';
+import { storeToRefs } from "pinia";
+import { useUserStore } from "@/stores/user";
+import { useChannelStore } from "@/stores/channel";
+import ChannelInfoContainer from "@/components/chat/ChannelInfoContainer.vue";
+import ChannelMessageContainer from "@/components/chat/ChannelMessageContainer.vue";
+import ChannelInputContainer from "@/components/chat/ChannelInputContainer.vue";
+import type { Message } from "@/types/Message";
 
 const props = defineProps({
   channelId: { type: Number, required: true },
@@ -47,43 +26,26 @@ const props = defineProps({
 const everythingLoaded = ref<boolean>(false)
 const loadFailed = ref<boolean>(false)
 const isConnected = ref<boolean>(false)
-const channel = ref<Channel | undefined>()
-const currentChannel = ref<CurrentChannel | undefined>()
 const receivedMessages = ref<Message[]>([])
-const messageText = ref<string>("")
 
 const apiurl = "192.168.1.12:4000/api"
 const userStore = useUserStore()
-const { currentUser, loggedIn } = storeToRefs(userStore)
+const { currentUser } = storeToRefs(userStore)
+const channelStore = useChannelStore()
+const { currentChannel, channel } = storeToRefs(channelStore)
+const { loadChannel } = channelStore
 
 async function loadInfo() {
 
   // Loading and checking the necessary info
 
-  currentChannel.value = await fetch(`http://${apiurl}/global`, {
-    headers: { "User-ID": currentUser.value.id.toString() }
-  })
-    .then(response => {
-      if (response.ok) {
-        return response.json()
-      } else {
-        throw new Error("Cannot get channel info")
-      }
-    })
-    .then(data => {
-      return data.currentChannel
-    })
-    .catch(error => {
-      console.log(error)
-      return undefined
-    })
+  const _ = await loadChannel(props.channelId, currentUser.value.id)
 
   if (!currentChannel.value) {
     loadFailed.value = true
     return
   }
 
-  channel.value = currentChannel.value.channel
   if (!channel.value) {
     loadFailed.value = true
     return
@@ -112,22 +74,18 @@ async function loadInfo() {
 
     try {
       const messages: Message[] = JSON.parse(event.data)
-      receivedMessages.value.concat(messages)
+      for (let i = messages.length - 1; i >= 0; i--) {
+        receivedMessages.value.unshift(messages[i])
+      }
     } catch (error) {
       console.log("Could not parse the received messages")
+      console.log(error)
     }
   })
 }
 
-async function sendMessage() {
-  console.log("sendMessage")
+function sendMessage(text: string) {
   if (!channel.value || currentUser.value.id == 0) {
-    return
-  }
-
-  let text = messageText.value.trim()
-  messageText.value = ""
-  if (text.length < 1 || text.length > 1024) {
     return
   }
 
@@ -136,12 +94,18 @@ async function sendMessage() {
     userId: currentUser.value.id,
     channelId: channel.value.id,
     text: text,
-    sentAt: "",
+    sentAt: "2023.05.26 15:36:07",
+    userName: currentUser.value.name,
   }
-  console.log(newMessage)
+  receivedMessages.value.unshift(newMessage)
 }
 
 loadInfo()
+
+// test
+// for (let i = 1; i <= 15; i++) {
+//   receivedMessages.value.unshift({ id: i, userId: 1, channelId: 1, text: "This is a message text", sentAt: "2023.05.26 15:36:07", userName: "Cool_user_1234" })
+// }
 </script>
 
 <style scoped>
@@ -149,37 +113,8 @@ loadInfo()
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  background-color: rgb(11, 20, 17);
-  margin-bottom: 5px;
-}
-.channel-info {
-  flex: 0 0 auto;
-  background-color: rgb(25, 50, 50);
-  margin: 5px;
-}
-.message-container {
-  flex: 1 1 auto;
-  min-height: 200px;
-  background-color: rgb(25, 50, 50);
-  margin: 0 5px 0 5px;
-}
-.input {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: row;
-
-  min-height: 50px;
-  margin: 5px;
-  background-color: rgb(25, 50, 50);
-}
-.input input {
-  flex: 1 1 auto;
-  height: 50px;
-  text-indent: 5px;
-}
-.input button {
-  flex: 0 0 auto;
-  height: 50px;
-  width: 50px;
+  /* background-color: rgb(15, 30, 25); */
+  /* margin: 5px 0 5px 0; */
+  overflow: hidden;
 }
 </style>

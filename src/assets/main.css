@@ -7,8 +7,11 @@
 
 body {
   background-color: rgb(25, 50, 50);
+}
+
+body, input, textarea, button {
   color: rgb(255, 255, 255);
-  font-family: Verdana, Helvetica, Arial;
+  font-family: Helvetica;
 }
 
 a, a:visited, a:hover {

@@ -10,6 +10,15 @@ export const useUserStore = defineStore("user", () => {
   })
   const loggedIn = ref<boolean>(false)
 
+  function getUserInfo(userId: number) {
+    const user: User = {
+      id: userId,
+      name: "",
+      createdAt: "",
+    }
+    return user
+  }
+
   // TODO: actually call the API server, auth the user and get their info
   function login(name: string, password: string) {
     currentUser.value = {
@@ -29,5 +38,5 @@ export const useUserStore = defineStore("user", () => {
     loggedIn.value = false
   }
 
-  return { currentUser, loggedIn, login, logout }
+  return { currentUser, loggedIn, login, logout, getUserInfo }
 })

@@ -1,8 +1,5 @@
 <template>
-  <h1>GlobalView</h1>
-  <ActiveChat
-    :channel-id="1"
-  />
+  <ActiveChat :channel-id="1" />
 </template>
 
 <script setup lang="ts">
