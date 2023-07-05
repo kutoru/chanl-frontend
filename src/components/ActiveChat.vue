@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onBeforeUnmount, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { useUserStore } from "@/stores/user";
 import { useChannelStore } from "@/stores/channel";
@@ -18,6 +18,7 @@ import ChannelInfoContainer from "@/components/chat/ChannelInfoContainer.vue";
 import ChannelMessageContainer from "@/components/chat/ChannelMessageContainer.vue";
 import ChannelInputContainer from "@/components/chat/ChannelInputContainer.vue";
 import type { Message } from "@/types/Message";
+import { apiurl, fetchWithTimeout } from "@/global";
 
 const props = defineProps({
   channelId: { type: Number, required: true },
@@ -27,8 +28,8 @@ const everythingLoaded = ref<boolean>(false)
 const loadFailed = ref<boolean>(false)
 const isConnected = ref<boolean>(false)
 const receivedMessages = ref<Message[]>([])
+const socket = ref<WebSocket | undefined>()
 
-const apiurl = "192.168.1.12:4000/api"
 const userStore = useUserStore()
 const { currentUser } = storeToRefs(userStore)
 const channelStore = useChannelStore()
@@ -55,25 +56,45 @@ async function loadInfo() {
 
   everythingLoaded.value = true
 
-  // Now trying to connect to the channel's websocket and setting up the event listeners
+  // Trying to connect to the channel's websocket
+
+  const gotCookie: boolean = await fetchWithTimeout(`http://${apiurl}/prepare-channel/${props.channelId}`, {
+      headers: { "User-ID": currentUser.value.id.toString() },
+      credentials: "include",
+  })
+    .then(response => {
+      if (response.ok) {
+        return response.json()
+      } else {
+        return false
+      }
+    })
+
+  if (!gotCookie) {
+    console.log("Didn't get a cookie")
+    return
+  }
 
   const serverUrl = `ws://${apiurl}/connect-to-channel/${props.channelId}`
-  const socket = new WebSocket(serverUrl);
+  socket.value = new WebSocket(serverUrl)
 
-  socket.addEventListener("open", () => {
+  // Setting up the websocket event listeners
+
+  socket.value.addEventListener("open", () => {
     isConnected.value = true
   })
 
-  socket.addEventListener("close", () => {
+  socket.value.addEventListener("close", () => {
     isConnected.value = false
+    socket.value = undefined
   })
 
-  socket.addEventListener("message", function (event) {
+  socket.value.addEventListener("message", function (event) {
     console.log("New messages from server")
-    console.log(event)
 
     try {
       const messages: Message[] = JSON.parse(event.data)
+      console.log(messages)
       for (let i = messages.length - 1; i >= 0; i--) {
         receivedMessages.value.unshift(messages[i])
       }
@@ -85,7 +106,8 @@ async function loadInfo() {
 }
 
 function sendMessage(text: string) {
-  if (!channel.value || currentUser.value.id == 0) {
+  if (!channel.value || currentUser.value.id == 0 ||
+      !socket.value || !isConnected.value) {
     return
   }
 
@@ -94,18 +116,26 @@ function sendMessage(text: string) {
     userId: currentUser.value.id,
     channelId: channel.value.id,
     text: text,
-    sentAt: "2023.05.26 15:36:07",
-    userName: currentUser.value.name,
+    sentAt: "",
   }
-  receivedMessages.value.unshift(newMessage)
+
+  socket.value.send(JSON.stringify(newMessage))
 }
 
 loadInfo()
 
 // test
 // for (let i = 1; i <= 15; i++) {
-//   receivedMessages.value.unshift({ id: i, userId: 1, channelId: 1, text: "This is a message text", sentAt: "2023.05.26 15:36:07", userName: "Cool_user_1234" })
+//   receivedMessages.value.unshift({ id: i, userId: 1, channelId: 1, text: `This is a message text ${i}`, sentAt: "2023.05.26 15:36:07", userName: "Cool_user_1234" })
 // }
+
+onBeforeUnmount(() => {
+  if (socket.value) {
+    socket.value.close()
+    isConnected.value = false
+    socket.value = undefined
+  }
+})
 </script>
 
 <style scoped>

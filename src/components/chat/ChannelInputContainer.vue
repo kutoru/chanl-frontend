@@ -1,6 +1,6 @@
 <template>
   <div class="input-area">
-    <div v-if="loggedIn && currentChannel && currentChannel.canWrite" class="input-container">
+    <div v-if="loggedIn && isConnected && currentChannel && currentChannel.canWrite" class="input-container">
       <label class="channel-input-wrapper">
         <textarea
           class="channel-input"
@@ -18,8 +18,10 @@
       >Send</button>
     </div>
 
-    <div v-else-if="loggedIn && currentChannel && !currentChannel.canWrite" class="input-blocked">You don't have write permissions for this channel</div>
-    <div v-else class="input-blocked">Log in to send messages</div>
+    <div v-else-if="!isConnected && currentChannel" class="input-blocked">Not connected</div>
+    <div v-else-if="loggedIn && isConnected && currentChannel && !currentChannel.canWrite" class="input-blocked">You don't have write permissions for this channel</div>
+    <div v-else-if="!loggedIn && isConnected && currentChannel" class="input-blocked">Log in to send messages</div>
+    <div v-else class="input-blocked">Something went wrong</div>
   </div>
 </template>
 
@@ -35,7 +37,6 @@ const channelStore = useChannelStore()
 const { currentChannel } = storeToRefs(channelStore)
 
 const messageText = ref<string>("")
-let button: HTMLButtonElement | null = null
 let activeElement: Element | null = null
 let textField: HTMLTextAreaElement | null = null
 
@@ -47,8 +48,12 @@ const emit = defineEmits<{
   submitMessageText: [messageText: string],
 }>()
 
+function saveActiveElement() {
+  activeElement = document.activeElement
+}
+
 function emitSubmit() {
-  console.log(activeElement)
+  textField = document.querySelector<HTMLTextAreaElement>("textarea[class=channel-input]")
   if (activeElement === textField) {
     textField?.focus()
   }
@@ -66,19 +71,10 @@ function emitSubmit() {
   emit('submitMessageText', text)
 }
 
-function saveActiveElement() {
-  activeElement = document.activeElement
-}
-
 watch(messageText, (newValue, oldValue) => {
   if (newValue.length > 1024) {
     messageText.value = oldValue
   }
-})
-
-onMounted(() => {
-  button = document.querySelector<HTMLButtonElement>("button[class=channel-input-button]")
-  textField = document.querySelector<HTMLTextAreaElement>("textarea[class=channel-input]")
 })
 </script>
 

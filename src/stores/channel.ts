@@ -30,7 +30,6 @@ export const useChannelStore = defineStore("channel", () => {
       })
       .catch(error => {
         console.log(error)
-        return undefined
       })
   }
 
