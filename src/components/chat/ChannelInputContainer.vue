@@ -18,9 +18,9 @@
       >Send</button>
     </div>
 
-    <div v-else-if="!isConnected && currentChannel" class="input-blocked">Not connected</div>
+    <div v-else-if="!isConnected && channel" class="input-blocked">Not connected</div>
     <div v-else-if="loggedIn && isConnected && currentChannel && !currentChannel.canWrite" class="input-blocked">You don't have write permissions for this channel</div>
-    <div v-else-if="!loggedIn && isConnected && currentChannel" class="input-blocked">Log in to send messages</div>
+    <div v-else-if="!loggedIn && isConnected && channel" class="input-blocked">Log in to send messages</div>
     <div v-else class="input-blocked">Something went wrong</div>
   </div>
 </template>
@@ -34,7 +34,7 @@ import { onMounted, ref, watch } from 'vue';
 const userStore = useUserStore()
 const { loggedIn } = storeToRefs(userStore)
 const channelStore = useChannelStore()
-const { currentChannel } = storeToRefs(channelStore)
+const { currentChannel, channel } = storeToRefs(channelStore)
 
 const messageText = ref<string>("")
 let activeElement: Element | null = null

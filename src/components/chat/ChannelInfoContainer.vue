@@ -1,9 +1,9 @@
 <template>
-  <div v-if="currentChannel && channel" class="channel-info">
-    <h2>Channel "{{ channel.name }}"</h2>
+  <div v-if="channel" class="channel-info">
+    <h2>Channel "{{ channel.name }}" (ID: {{ channel.id }})</h2>
     <span>Channel created at: {{ channel.createdAt }}; </span>
-    <span>You joined at: {{ currentChannel.joinedAt }}; </span>
-    <span>Channel type is: {{ channel.type }};</span><br>
+    <span>Channel type is: {{ channel.type }}; </span><br>
+    <span v-if="currentChannel">You joined at: {{ currentChannel.joinedAt }}; </span><br>
     <span v-if="isConnected">Connection Status: <strong>Online</strong></span>
     <span v-else>Connection Status: <strong>Offline</strong></span>
   </div>

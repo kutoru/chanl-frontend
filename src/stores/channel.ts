@@ -5,6 +5,7 @@ import type { CurrentChannel } from "@/types/CurrentChannel"
 import { apiurl, fetchWithTimeout } from "@/global"
 
 export const useChannelStore = defineStore("channel", () => {
+  const parentChannel = ref<CurrentChannel | undefined>()
   const currentChannel = ref<CurrentChannel | undefined>()
   const channel = ref<Channel | undefined>()
   const childChannels = ref<CurrentChannel[]>([])
@@ -18,26 +19,41 @@ export const useChannelStore = defineStore("channel", () => {
         if (response.ok) {
           return response.json()
         } else {
-          throw new Error("Cannot get channel info")
+          throw new Error("Response is not ok")
         }
       })
       .then(data => {
+        if (!data.currentChannel || !data.currentChannel.channel) {
+          throw new Error("Did not get channel info from response")
+        }
+
         channel.value = data.currentChannel.channel
+
         if (userId != 0) {
+          if (channel.value?.id !== 1 && !data.parentChannel) {
+            throw new Error("Did not get parentChannel from response")
+          }
+          if (!data.childChannels) {
+            throw new Error("Did not get childChannels from response")
+          }
+
+          parentChannel.value = data.parentChannel
           currentChannel.value = data.currentChannel
           childChannels.value = data.childChannels
         }
       })
       .catch(error => {
+        unloadChannel()
         console.log(error)
       })
   }
 
   function unloadChannel() {
-    channel.value = undefined
+    parentChannel.value = undefined
     currentChannel.value = undefined
+    channel.value = undefined
     childChannels.value = []
   }
 
-  return { currentChannel, channel, childChannels, loadChannel, unloadChannel }
+  return { parentChannel, currentChannel, channel, childChannels, loadChannel, unloadChannel }
 })

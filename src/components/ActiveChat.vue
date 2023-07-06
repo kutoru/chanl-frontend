@@ -1,5 +1,5 @@
 <template>
-  <div v-if="everythingLoaded && currentChannel && channel" class="channel-container">
+  <div v-if="everythingLoaded && channel" class="channel-container">
     <ChannelInfoContainer :is-connected="isConnected" />
     <ChannelMessageContainer :messages="receivedMessages" />
     <ChannelInputContainer :is-connected="isConnected" @submit-message-text="(msg) => sendMessage(msg)" />
@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useUserStore } from "@/stores/user";
 import { useChannelStore } from "@/stores/channel";
@@ -33,19 +33,14 @@ const socket = ref<WebSocket | undefined>()
 const userStore = useUserStore()
 const { currentUser } = storeToRefs(userStore)
 const channelStore = useChannelStore()
-const { currentChannel, channel } = storeToRefs(channelStore)
-const { loadChannel } = channelStore
+const { channel } = storeToRefs(channelStore)
+const { loadChannel, unloadChannel } = channelStore
 
 async function loadInfo() {
 
   // Loading and checking the necessary info
 
   const _ = await loadChannel(props.channelId, currentUser.value.id)
-
-  if (!currentChannel.value) {
-    loadFailed.value = true
-    return
-  }
 
   if (!channel.value) {
     loadFailed.value = true
@@ -89,7 +84,7 @@ async function loadInfo() {
     socket.value = undefined
   })
 
-  socket.value.addEventListener("message", function (event) {
+  socket.value.addEventListener("message", (event) => {
     console.log("New messages from server")
 
     try {
@@ -103,6 +98,20 @@ async function loadInfo() {
       console.log(error)
     }
   })
+}
+
+function unloadInfo() {
+  if (socket.value) {
+    socket.value.close()
+    socket.value = undefined
+  }
+
+  everythingLoaded.value = false
+  loadFailed.value = false
+  isConnected.value = false
+  receivedMessages.value = []
+
+  unloadChannel()
 }
 
 function sendMessage(text: string) {
@@ -122,19 +131,17 @@ function sendMessage(text: string) {
   socket.value.send(JSON.stringify(newMessage))
 }
 
-loadInfo()
-
-// test
-// for (let i = 1; i <= 15; i++) {
-//   receivedMessages.value.unshift({ id: i, userId: 1, channelId: 1, text: `This is a message text ${i}`, sentAt: "2023.05.26 15:36:07", userName: "Cool_user_1234" })
-// }
+onMounted(() => {
+  loadInfo()
+})
 
 onBeforeUnmount(() => {
-  if (socket.value) {
-    socket.value.close()
-    isConnected.value = false
-    socket.value = undefined
-  }
+  unloadInfo()
+})
+
+watch(() => props.channelId, () => {
+  unloadInfo()
+  loadInfo()
 })
 </script>
 

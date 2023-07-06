@@ -1,92 +1,125 @@
 <template>
   <div class="nav-bar">
+
+    <div v-if="parentChannel && parentChannel.channel" class="parent-channel-container">
+      <div class="nav-bar-info">
+        Parent channel:
+      </div>
+
+      <RouterLink
+        :to="getChannelRoute(parentChannel)"
+        custom
+        v-slot="{ navigate }"
+      >
+        <div class="nav-bar-item" role="link" @click="navigate">
+          {{ formatChannelName(parentChannel.channel.name) }}
+          <div class="tooltip">{{ formatChannelTooltip(parentChannel.channel.name) }}</div>
+        </div>
+      </RouterLink>
+    </div>
+
+    <div v-if="parentChannel && parentChannel.channel" style="margin-top: 10px;" class="nav-bar-separator"></div>
+
+    <div v-if="childChannels.length > 0" class="child-channel-container">
+      <div class="nav-bar-info">
+        Child channels:
+      </div>
+
+      <RouterLink
+        v-for="childChannel, index in childChannels"
+        :key="index"
+        :to="getChannelRoute(childChannel)"
+        custom
+        v-slot="{ navigate }"
+      >
+        <div v-if="childChannel && childChannel.channel && index < childChannels.length-1" class="nav-bar-item" role="link" @click="navigate">
+          {{ formatChannelName(childChannel.channel.name) }}
+          <div class="tooltip">{{ formatChannelTooltip(childChannel.channel.name) }}</div>
+        </div>
+        <div v-else-if="childChannel && childChannel.channel && index === childChannels.length-1" style="margin-bottom: 10px;" class="nav-bar-item" role="link" @click="navigate">
+          {{ formatChannelName(childChannel.channel.name) }}
+          <div class="tooltip">{{ formatChannelTooltip(childChannel.channel.name) }}</div>
+        </div>
+      </RouterLink>
+    </div>
+
+    <div v-else class="child-channel-container"></div>
+    <div class="nav-bar-separator"></div>
+
     <RouterLink
-      v-for="route, index in topRoutes"
-      :key="index"
-      :to="route.to"
+      :to="{ name: 'global' }"
       custom
       v-slot="{ navigate }"
     >
-      <div class="nav-bar-item" style="margin-bottom: 0;" role="link" @click="navigate">
-        {{ route.title }}
-        <div class="tooltip">{{ route.desc }}</div>
+      <div class="nav-bar-item" role="link" @click="navigate">
+        Global
+        <div class="tooltip">Go to global<br>channel</div>
       </div>
     </RouterLink>
 
-    <div style="flex: 1 1 auto; margin-top: 10px;"></div>
-
     <RouterLink
-      v-for="route, index in bottomRoutes"
-      :key="index"
-      :to="route.to"
+      :to="{ name: 'about' }"
       custom
       v-slot="{ navigate }"
     >
-      <div class="nav-bar-item" style="margin-top: 0;" role="link" @click="navigate">
-        {{ route.title }}
-        <div class="tooltip">{{ route.desc }}</div>
+      <div class="nav-bar-item" role="link" @click="navigate">
+        About
+        <div class="tooltip">About this<br>website</div>
       </div>
     </RouterLink>
 
-    <div v-if="loggedIn" class="nav-bar-item" style="margin-top: 0;" role="link" @click="logout">
-      LOG OUT
-      <div class="tooltip">Log out of<br>your account</div>
-    </div>
-    <!-- TODO: if the user is not logged in, make this into a router link and send the user to the login page -->
-    <div v-else class="nav-bar-item" style="margin-top: 0;" role="link" @click="login('Kut', '1234')">
-      LOG IN
-      <div class="tooltip">Log into<br>your account</div>
-    </div>
+    <RouterLink
+      :to="{ name: 'login' }"
+      custom
+      v-slot="{ navigate }"
+    >
+      <div v-if="loggedIn" class="nav-bar-item" style="margin-bottom: 10px" role="link" @click="(e) => { logout(); navigate(e); }">
+        Log Out
+        <div class="tooltip">Log out of<br>your account</div>
+      </div>
+      <div v-else class="nav-bar-item" style="margin-bottom: 10px" role="link" @click="navigate">
+        Log In
+        <div class="tooltip">Log into<br>your account</div>
+      </div>
+    </RouterLink>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useUserStore } from '@/stores/user';
-import { storeToRefs } from 'pinia';
 import { RouterLink } from 'vue-router';
+import { storeToRefs } from 'pinia';
+import { useUserStore } from '@/stores/user';
+import { useChannelStore } from '@/stores/channel';
+import type { CurrentChannel } from '@/types/CurrentChannel';
 
 const userStore = useUserStore()
 const { loggedIn } = storeToRefs(userStore)
-const { login, logout } = userStore
+const { logout } = userStore
+const channelStore = useChannelStore()
+const { parentChannel, childChannels } = storeToRefs(channelStore)
 
-const topRoutes = [
-  {
-    title: "GLOBAL",
-    desc: "Global\nchannel",
-    requireLogin: false,
-    to: { name: "global" }
-  },
-  {
-    title: "PRIVATE",
-    desc: "Private\nchannel",
-    requireLogin: true,
-    to: { name: "private" }
-  },
-  {
-    title: "PERSONAL",
-    desc: "Personal\nchannel",
-    requireLogin: true,
-    to: { name: "personal" }
-  },
-]
+// trim the name if necessary
+function formatChannelName(name: string) {
+  return name
+}
 
-const bottomRoutes = [
-  {
-    title: "ABOUT",
-    desc: "About this\nwebsite",
-    requireLogin: false,
-    to: { name: "about" }
-  },
-  // {
-  //   title: "LOG IN",
-  //   desc: "Log into\nyour account",
-  //   requireLogin: false,
-  //   to: { name: "login" }
-  // },
-]
+// trim the name and add newlines if necessary
+function formatChannelTooltip(name: string) {
+  return `Go to ${name}`
+}
+
+function getChannelRoute(channel: CurrentChannel) {
+  return {
+    name: "channel",
+    params: { channelId: channel.channelId}
+  }
+}
 </script>
 
 <style scoped>
+
+/* nav bar */
+
 .nav-bar {
   background-color: rgb(35, 70, 70);
   top: 0;
@@ -109,8 +142,48 @@ const bottomRoutes = [
   box-shadow: 0px 0px 5px 1px rgba(50, 200, 200, 0.5);
   right: 0;
 }
+
+.nav-bar-info {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  user-select: none;
+}
+
+.nav-bar-separator {
+  flex: 0 0 auto;
+  margin: 0 10px;
+  background-color: rgba(0, 0, 0, 0.25);
+  height: 5px;
+  border-radius: 5px;
+}
+
+/* parent channel container */
+
+.parent-channel-container {
+  flex: 0 0 auto;
+}
+
+/* child channel container */
+
+.child-channel-container {
+  flex: 1 1 auto;
+  min-height: 125px;
+  overflow-y: scroll;
+  overflow-x: visible;
+
+  scrollbar-width: none;
+}
+.child-channel-container::-webkit-scrollbar {
+  width: 0;
+}
+
+/* nav bar item */
+
 .nav-bar-item {
   margin: 10px;
+  margin-bottom: 0;
   width: 130px;
   height: 50px;
   background-color: rgb(45, 90, 90);
