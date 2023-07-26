@@ -7,3 +7,9 @@ osu! has a strong community aspect, with players creating and sharing their own 
 The game has gained a competitive scene with various tournaments and leaderboards, and it also has a strong presence in streaming platforms such as Twitch, where players showcase their skills and interact with viewers.
 Overall, osu! is known for its challenging gameplay, diverse music selection, and active community, making it a popular choice for rhythm game enthusiasts around the world.</span>
 </template>
+
+<style scoped>
+h1, span {
+  padding: 5px;
+}
+</style>

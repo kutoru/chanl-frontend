@@ -28,10 +28,10 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
 import { useChannelStore } from '@/stores/channel';
-import { useUserStore } from '@/stores/user';
-import { onMounted, ref, watch } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import { ref, watch } from 'vue';
 
-const userStore = useUserStore()
+const userStore = useAuthStore()
 const { loggedIn } = storeToRefs(userStore)
 const channelStore = useChannelStore()
 const { currentChannel, channel } = storeToRefs(channelStore)
@@ -73,7 +73,7 @@ function emitSubmit() {
 
 watch(messageText, (newValue, oldValue) => {
   if (newValue.length > 1024) {
-    messageText.value = oldValue
+    messageText.value = newValue.slice(0, 1024)
   }
 })
 </script>
@@ -102,7 +102,7 @@ watch(messageText, (newValue, oldValue) => {
 }
 .channel-input {
   height: 40px;
-  width: 90%;
+  width: 100%;
   resize: none;
   background-color: rgb(35, 70, 70);
   font-size: 17px;

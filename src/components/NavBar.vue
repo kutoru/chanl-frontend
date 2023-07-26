@@ -69,15 +69,24 @@
     </RouterLink>
 
     <RouterLink
+      v-if="loggedIn"
+      :to="{ name: 'profile' }"
+      custom
+      v-slot="{ navigate }"
+    >
+      <div class="nav-bar-item" style="margin-bottom: 10px" role="link" @click="navigate">
+        Profile
+        <div class="tooltip">See your<br>profile</div>
+      </div>
+    </RouterLink>
+
+    <RouterLink
+      v-if="!loggedIn"
       :to="{ name: 'login' }"
       custom
       v-slot="{ navigate }"
     >
-      <div v-if="loggedIn" class="nav-bar-item" style="margin-bottom: 10px" role="link" @click="(e) => { logout(); navigate(e); }">
-        Log Out
-        <div class="tooltip">Log out of<br>your account</div>
-      </div>
-      <div v-else class="nav-bar-item" style="margin-bottom: 10px" role="link" @click="navigate">
+      <div class="nav-bar-item" style="margin-bottom: 10px" role="link" @click="navigate">
         Log In
         <div class="tooltip">Log into<br>your account</div>
       </div>
@@ -88,13 +97,12 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { useUserStore } from '@/stores/user';
+import { useAuthStore } from '@/stores/auth';
 import { useChannelStore } from '@/stores/channel';
 import type { CurrentChannel } from '@/types/CurrentChannel';
 
-const userStore = useUserStore()
-const { loggedIn } = storeToRefs(userStore)
-const { logout } = userStore
+const authStore = useAuthStore()
+const { loggedIn } = storeToRefs(authStore)
 const channelStore = useChannelStore()
 const { parentChannel, childChannels } = storeToRefs(channelStore)
 

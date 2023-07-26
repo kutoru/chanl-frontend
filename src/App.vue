@@ -8,13 +8,19 @@
 
 <script setup lang="ts">
 import { RouterView } from "vue-router"
-import { useUserStore } from "@/stores/user"
+import { useAuthStore } from "@/stores/auth"
 import NavBar from "@/components/NavBar.vue"
 import UserBar from "@/components/UserBar.vue"
-import { onMounted } from "vue";
+import { onMounted, watch } from "vue";
+import { storeToRefs } from "pinia";
 
-const userStore = useUserStore()
-const { login } = userStore
+// in seconds
+const authTokenUpdateTimeout = 20
+let currentRefreshTask = 0
+
+const authStore = useAuthStore()
+const { loggedIn } = storeToRefs(authStore)
+const { loginWithToken, refreshAuthToken, logout, forceLogout } = authStore
 
 // 100vh in css is incorrect for some mobile browsers, this function gets actual 100vh
 function calculateTrueVH() {
@@ -34,7 +40,37 @@ onMounted(() => {
   calculateTrueVH()
 })
 
-login("Kut", "1234")
+// Automatically updating the auth token. Should only be used for short term tokens
+async function startRefreshTask(calledFirstTime: boolean) {
+  if (!calledFirstTime) {
+    const success = await refreshAuthToken()
+    if (!success) {
+      clearTimeout(currentRefreshTask)
+
+      const success = await logout()
+      if (!success) {
+        forceLogout()
+      }
+
+      location.reload()
+      return
+    }
+  }
+
+  currentRefreshTask = setTimeout(() => {
+    startRefreshTask(false)
+  }, authTokenUpdateTimeout * 1000)
+  console.log("Started the refresh task")
+}
+
+watch(loggedIn, (newValue, oldValue) => {
+  clearTimeout(currentRefreshTask)
+  if (newValue) {
+    startRefreshTask(true)
+  }
+})
+
+loginWithToken()
 </script>
 
 <style>

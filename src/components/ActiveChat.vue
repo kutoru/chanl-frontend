@@ -5,14 +5,14 @@
     <ChannelInputContainer :is-connected="isConnected" @submit-message-text="(msg) => sendMessage(msg)" />
   </div>
 
-  <h2 style="margin: 20px;" v-else-if="loadFailed">Either could not connect or could not load the necessary information</h2>
+  <h2 style="margin: 20px;" v-else-if="loadFailed">Server error</h2>
   <h2 style="margin: 20px;" v-else>Loading the channel...</h2>
 </template>
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
-import { useUserStore } from "@/stores/user";
+import { useAuthStore } from "@/stores/auth";
 import { useChannelStore } from "@/stores/channel";
 import ChannelInfoContainer from "@/components/chat/ChannelInfoContainer.vue";
 import ChannelMessageContainer from "@/components/chat/ChannelMessageContainer.vue";
@@ -30,8 +30,8 @@ const isConnected = ref<boolean>(false)
 const receivedMessages = ref<Message[]>([])
 const socket = ref<WebSocket | undefined>()
 
-const userStore = useUserStore()
-const { currentUser } = storeToRefs(userStore)
+const authStore = useAuthStore()
+const { currentUser } = storeToRefs(authStore)
 const channelStore = useChannelStore()
 const { channel } = storeToRefs(channelStore)
 const { loadChannel, unloadChannel } = channelStore
@@ -63,6 +63,10 @@ async function loadInfo() {
       } else {
         return false
       }
+    })
+    .catch(error => {
+      console.log(error)
+      return false
     })
 
   if (!gotCookie) {
